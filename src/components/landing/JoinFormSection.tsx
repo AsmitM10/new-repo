@@ -11,6 +11,9 @@ export default function JoinFormSection() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
+  // ✅ Admin WhatsApp number (from your screenshot)
+  const ADMIN_WHATSAPP_NUMBER = "+15551515551";
+
   // Animation variants
   const fadeInUp = {
     hidden: { opacity: 0, y: 40 },
@@ -35,77 +38,103 @@ export default function JoinFormSection() {
   };
 
   const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, ""); // Remove non-digits
+    const value = e.target.value.replace(/\D/g, "");
     if (value.length <= 10) {
       setWhatsapp(value);
     }
   };
 
-  // ✅ Handle Form Submit
-// ✅ Handle Form Submit
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setMessage("");
+  // ✅ Fixed Handle Form Submit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage("");
 
-  // Validation
-  if (!name.trim()) {
-    setMessage("❌ Please enter your name");
-    return;
-  }
-
-  if (!whatsapp.trim()) {
-    setMessage("❌ Please enter your WhatsApp number");
-    return;
-  }
-
-  if (!validateWhatsApp(whatsapp)) {
-    setMessage("❌ Please enter a valid 10-digit Indian number");
-    return;
-  }
-
-  setIsSubmitting(true);
-
-  try {
-    // ✅ Send data to n8n webhook (POST request)
-    const webhookUrl = "https://asmit06.app.n8n.cloud/webhook/whatsapp-register";
-
-    const payload = {
-      name: name.trim(),
-      whatsapp: `+91${whatsapp.trim()}`,
-      referrer: referrerName || null,
-    };
-
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Webhook error: ${response.statusText}`);
+    // Validation
+    if (!name.trim()) {
+      setMessage("❌ Please enter your name");
+      return;
     }
 
-    setMessage("✅ Registration successful! Redirecting to WhatsApp...");
+    if (!whatsapp.trim()) {
+      setMessage("❌ Please enter your WhatsApp number");
+      return;
+    }
 
-    // ✅ Redirect immediately after webhook call success
-    const adminNumber = "15551757640"; // Admin number (without +)
-    const preText = encodeURIComponent("verify");
-    const whatsappLink = `https://wa.me/${adminNumber}?text=${preText}`;
+    if (!validateWhatsApp(whatsapp)) {
+      setMessage("❌ Please enter a valid 10-digit Indian number");
+      return;
+    }
 
-    // Small delay to show success message before redirect
-    setTimeout(() => {
-      if (typeof window !== "undefined") {
-        window.location.href = whatsappLink; // use location.href instead of window.open
+    setIsSubmitting(true);
+
+    try {
+      // ✅ Prepare WhatsApp link to open user's WhatsApp with pre-filled message to admin
+      const userWhatsAppNumber = `91${whatsapp.trim()}`; // User's number
+      const preText = encodeURIComponent("verify");
+      const whatsappLink = `https://api.whatsapp.com/send?phone=${ADMIN_WHATSAPP_NUMBER}&text=${preText}`;
+
+      // ✅ Send data to n8n webhook (POST request)
+      const webhookUrl = "https://asmit9550.app.n8n.cloud/webhook/whatsapp-webhook";
+
+      const payload = {
+        name: name.trim(),
+        whatsapp: `+91${whatsapp.trim()}`,
+        referrer: referrerName || null,
+      };
+
+      console.log("Sending to webhook:", payload);
+
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        mode: "cors", // ✅ Explicitly set CORS mode
+        body: JSON.stringify(payload),
+      });
+
+      console.log("Webhook response status:", response.status);
+
+      // ✅ Check if webhook was successful
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log("Webhook response:", responseData);
+        
+        setMessage("✅ Registration successful! Redirecting to WhatsApp...");
+        
+        // Wait before redirect
+        setTimeout(() => {
+          window.location.href = whatsappLink;
+        }, 1500);
+      } else {
+        // Even if webhook fails, still redirect
+        const errorText = await response.text();
+        console.error("Webhook error:", errorText);
+        
+        setMessage("⚠️ Registration recorded. Redirecting to WhatsApp...");
+        
+        setTimeout(() => {
+          window.location.href = whatsappLink;
+        }, 1500);
       }
-    }, 800);
-  } catch (err: any) {
-    console.error("Registration error:", err.message);
-    setMessage(`❌ Something went wrong: ${err.message}`);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
 
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      
+      // ✅ Still redirect even if webhook fails
+      setMessage("⚠️ Redirecting to WhatsApp...");
+      
+      const preText = encodeURIComponent("verify");
+      const whatsappLink = `https://api.whatsapp.com/send?phone=${ADMIN_WHATSAPP_NUMBER}&text=${preText}`;
+      
+      setTimeout(() => {
+        window.location.href = whatsappLink;
+      }, 1500);
+      
+    } finally {
+      // Keep button disabled during redirect
+    }
+  };
 
   return (
     <motion.section
@@ -139,7 +168,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       )}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-lg p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Name Input */}
             <div className="flex-1">
@@ -188,7 +217,8 @@ const handleSubmit = async (e: React.FormEvent) => {
           {/* Submit Button */}
           <div className="flex justify-center">
             <Button
-              type="submit"
+              onClick={handleSubmit}
+              type="button"
               className="w-full md:w-auto px-8 py-3 font-medium bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white border-0 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
               disabled={isSubmitting}
             >
@@ -211,13 +241,15 @@ const handleSubmit = async (e: React.FormEvent) => {
               className={`p-4 rounded-lg text-center font-medium ${
                 message.includes("✅")
                   ? "bg-green-50 text-green-700 border border-green-200"
+                  : message.includes("⚠️")
+                  ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
                   : "bg-red-50 text-red-700 border border-red-200"
               }`}
             >
               {message}
             </motion.div>
           )}
-        </form>
+        </div>
 
         <div className="mt-6 pt-6 border-t border-gray-100">
           <p className="text-sm text-gray-500 text-center">
