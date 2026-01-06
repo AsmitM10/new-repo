@@ -11,8 +11,8 @@ export default function JoinFormSection() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
-  // ✅ Admin WhatsApp number (from your screenshot)
-  const ADMIN_WHATSAPP_NUMBER = "+15551515551";
+  // ✅ Admin WhatsApp number (US format)
+  const ADMIN_WHATSAPP_NUMBER = "15551515551";
 
   // Animation variants
   const fadeInUp = {
