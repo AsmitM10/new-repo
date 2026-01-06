@@ -44,7 +44,7 @@ export default function JoinFormSection() {
     }
   };
 
-  // ✅ Fixed Handle Form Submit
+  // ✅ FIXED: Direct WhatsApp redirect with webhook call
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
@@ -68,12 +68,11 @@ export default function JoinFormSection() {
     setIsSubmitting(true);
 
     try {
-      // ✅ Prepare WhatsApp link to open user's WhatsApp with pre-filled message to admin
-      const userWhatsAppNumber = `91${whatsapp.trim()}`; // User's number
+      // ✅ Prepare WhatsApp link - Opens user's WhatsApp to chat with admin
       const preText = encodeURIComponent("verify");
-      const whatsappLink = `https://api.whatsapp.com/send?phone=${ADMIN_WHATSAPP_NUMBER}&text=${preText}`;
+      const whatsappLink = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${preText}`;
 
-      // ✅ Send data to n8n webhook (POST request)
+      // ✅ Send data to n8n webhook (don't wait for response)
       const webhookUrl = "https://asmit9550.app.n8n.cloud/webhook/whatsapp-webhook";
 
       const payload = {
@@ -84,48 +83,32 @@ export default function JoinFormSection() {
 
       console.log("Sending to webhook:", payload);
 
-      const response = await fetch(webhookUrl, {
+      // Fire and forget webhook call
+      fetch(webhookUrl, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
         },
-        mode: "cors", // ✅ Explicitly set CORS mode
+        mode: "no-cors", // ✅ Use no-cors to avoid CORS issues
         body: JSON.stringify(payload),
-      });
+      }).catch(err => console.log("Webhook error (ignored):", err));
 
-      console.log("Webhook response status:", response.status);
-
-      // ✅ Check if webhook was successful
-      if (response.ok) {
-        const responseData = await response.json();
-        console.log("Webhook response:", responseData);
-        
-        setMessage("✅ Registration successful! Redirecting to WhatsApp...");
-        
-        // Wait before redirect
-        setTimeout(() => {
-          window.location.href = whatsappLink;
-        }, 1500);
-      } else {
-        // Even if webhook fails, still redirect
-        const errorText = await response.text();
-        console.error("Webhook error:", errorText);
-        
-        setMessage("⚠️ Registration recorded. Redirecting to WhatsApp...");
-        
-        setTimeout(() => {
-          window.location.href = whatsappLink;
-        }, 1500);
-      }
+      // ✅ Show success message
+      setMessage("✅ Registration successful! Redirecting to WhatsApp...");
+      
+      // ✅ Redirect to WhatsApp after short delay
+      setTimeout(() => {
+        window.location.href = whatsappLink;
+      }, 1500);
 
     } catch (err: any) {
       console.error("Registration error:", err);
       
-      // ✅ Still redirect even if webhook fails
-      setMessage("⚠️ Redirecting to WhatsApp...");
-      
+      // ✅ Still redirect even if there's an error
       const preText = encodeURIComponent("verify");
-      const whatsappLink = `https://api.whatsapp.com/send?phone=${ADMIN_WHATSAPP_NUMBER}&text=${preText}`;
+      const whatsappLink = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${preText}`;
+      
+      setMessage("⚠️ Redirecting to WhatsApp...");
       
       setTimeout(() => {
         window.location.href = whatsappLink;
