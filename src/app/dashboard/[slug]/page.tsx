@@ -49,7 +49,8 @@ export default function MemberDashboard({ data }: { data: any }) {
     if (storedName) setUserName(storedName)
   }, [])
 
-  const referralLink = `https://bsfitness/${userName.replace(/\s+/g, "_")}`
+const referralLink = `https://new-repo1-chi.vercel.app/${userName.replace(/\s+/g, "_")}`;
+
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(referralLink)
