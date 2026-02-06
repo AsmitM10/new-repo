@@ -79,9 +79,11 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   const { slug } = data
 
-  const telegramBot = "brightstarfitness_bot"
+  const telegramBot = "brightstarfitness_bot";
 
-const telegramLink = `https://t.me/${telegramBot}?text=verify_${slug}`
+//const telegramLink = `https://t.me/${telegramBot}?text=verify_${slug}`;
+const telegramLink = `https://t.me/${telegramBot}?text=${encodeURIComponent("/verify")}`;
+window.location.href = telegramLink;
 
 
 } catch (err: any) {
