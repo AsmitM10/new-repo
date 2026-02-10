@@ -28,14 +28,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${nunitoSans.variable} ${GeistMono.variable}`}>
       <body className="font-sans">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+      
+
           <Suspense fallback={null}>{children}</Suspense>
-        </ThemeProvider>
+      
         <Analytics />
       </body>
     </html>

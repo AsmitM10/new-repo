@@ -40,8 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-tsconfig.zip
-*.zip
-.next
-node_modules
+
 

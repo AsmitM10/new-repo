@@ -17,6 +17,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import AttendanceTracker from "@/components/landing/AttendanceTracker"
 import { createClient } from "@supabase/supabase-js"
 
+/* =========================
+   Supabase client (CLIENT SAFE)
+========================= */
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -37,10 +40,20 @@ type UserData = {
    Component
 ========================= */
 export default function MemberDashboard({ data }: { data: UserData }) {
-  const [activeSection, setActiveSection] = useState<"home" | "faqs">("home")
+  const [activeSection, setActiveSection] =
+    useState<"home" | "faqs" | "referrals">("home")
+  const [activeTab, setActiveTab] =
+    useState<"invite" | "attendance">("invite")
   const [copied, setCopied] = useState(false)
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+
+  /* =========================
+     Local attendance state (CRITICAL FIX)
+  ========================= */
+  const [attendance, setAttendance] = useState<string[]>(
+    data.attendance ?? []
+  )
 
   /* =========================
      Derived values
@@ -49,7 +62,7 @@ export default function MemberDashboard({ data }: { data: UserData }) {
   const referralLink = `https://bsfitness/dashboard/${data.userpage_slug}`
 
   /* =========================
-     Attendance helpers
+     Helpers
   ========================= */
   const getTodayIndex = () => {
     const start = new Date(data.created_at).getTime()
@@ -57,46 +70,50 @@ export default function MemberDashboard({ data }: { data: UserData }) {
   }
 
   /* =========================
-     Auto mark ABSENT
+     Auto mark ABSENT (SAFE + ONCE)
   ========================= */
   useEffect(() => {
     const syncAttendance = async () => {
       const daysPassed = getTodayIndex()
-      const attendance = [...(data.attendance || [])]
+      const updated = [...attendance]
       let changed = false
 
       for (let i = 0; i < daysPassed; i++) {
-        if (!attendance[i]) {
-          attendance[i] = "A"
+        if (!updated[i]) {
+          updated[i] = "A"
           changed = true
         }
       }
 
       if (!changed) return
 
+      setAttendance(updated)
+
       await supabase
         .from("user4")
-        .update({ attendance })
+        .update({ attendance: updated })
         .eq("userpage_slug", data.userpage_slug)
     }
 
     syncAttendance()
-  }, [data.userpage_slug, data.created_at])
+    // ✅ include attendance
+  }, [data.created_at, data.userpage_slug, attendance])
 
   /* =========================
      Mark TODAY PRESENT
   ========================= */
   const markTodayPresent = async () => {
     const todayIndex = getTodayIndex()
-    const attendance = [...(data.attendance || [])]
-
     if (attendance[todayIndex]) return
 
-    attendance[todayIndex] = "P"
+    const updated = [...attendance]
+    updated[todayIndex] = "P"
+
+    setAttendance(updated)
 
     await supabase
       .from("user4")
-      .update({ attendance })
+      .update({ attendance: updated })
       .eq("userpage_slug", data.userpage_slug)
   }
 
@@ -189,7 +206,7 @@ export default function MemberDashboard({ data }: { data: UserData }) {
               </div>
             </Card>
 
-            <AttendanceTracker attendance={data.attendance || []} />
+            <AttendanceTracker attendance={attendance} />
           </>
         )}
 
