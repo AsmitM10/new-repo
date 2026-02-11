@@ -1,15 +1,15 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import MemberDashboard from "./MemberDashboard"
 
-interface UserData {
+export interface UserData {
   id: number
   username: string
   userpage_slug: string
-  attendance: string[] | null
+  attendance: string[]
   created_at: string
 }
 
-export default async function UserPage({
+export default async function Page({
   params,
 }: {
   params: { slug: string }
@@ -24,15 +24,8 @@ export default async function UserPage({
 
   if (error || !data) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            User Not Found
-          </h1>
-          <p className="text-gray-600">
-            The user profile you're looking for doesn't exist.
-          </p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg font-semibold">User Not Found</p>
       </div>
     )
   }
