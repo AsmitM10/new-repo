@@ -97,22 +97,81 @@ const supabase = createClient(
 )
 
 export async function POST(req: Request) {
-  const { username, whatsapp_no } = await req.json()
+  // accept optional referrer slug for referral tracking
+  const { username, whatsapp_no, referrer_slug } = await req.json()
 
+  // generate a unique slug for the new user's dashboard/landing page
   const slug =
     username.replace(/\s+/g, "_").toLowerCase() +
     "_" +
     Date.now()
 
-  const { error } = await supabase.from("user4").insert({
+  // insert user record into user4 (store referrer slug if provided)
+  const insertPayload: any = {
     username,
     whatsapp_no,
     userpage_slug: slug,
     verified: false,
+  }
+  if (referrer_slug) {
+    insertPayload.referrer = referrer_slug
+  }
+
+  const { data: newUser, error: insertErr } = await supabase
+    .from("user4")
+    .insert(insertPayload)
+    .select()
+    .single()
+
+  if (insertErr) {
+    return NextResponse.json({ error: insertErr.message }, { status: 500 })
+  }
+
+  // create an entry in user5 for the new user (empty referrals list)
+  await supabase.from("user5").insert({
+    user_id: newUser.id,
+    username: newUser.username,
+    referrals: [],
   })
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  // if the request included a referrer slug, link the referral
+  if (referrer_slug) {
+    try {
+      const { data: refUser } = await supabase
+        .from("user4")
+        .select("id, username, userpage_slug")
+        .eq("userpage_slug", referrer_slug)
+        .single()
+
+      if (refUser) {
+        // update or insert referrer's user5 row
+        const { data: existing, error: existingErr } = await supabase
+          .from("user5")
+          .select("id, referrals")
+          .eq("user_id", refUser.id)
+          .single()
+
+        const newReferralValue = slug // store slug of the new user
+
+        if (existingErr && existingErr.code !== "PGRST116") {
+          console.error("Error fetching referrer row:", existingErr)
+        } else if (existing) {
+          const updated = [...(existing.referrals || []), newReferralValue]
+          await supabase
+            .from("user5")
+            .update({ referrals: updated })
+            .eq("id", existing.id)
+        } else {
+          await supabase.from("user5").insert({
+            user_id: refUser.id,
+            username: refUser.username,
+            referrals: [newReferralValue],
+          })
+        }
+      }
+    } catch (err) {
+      console.error("Referral tracking failed:", err)
+    }
   }
 
   return NextResponse.json({ slug })

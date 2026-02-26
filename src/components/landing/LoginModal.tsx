@@ -2,6 +2,13 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { createClient } from "@supabase/supabase-js"
+
+// supabase client for client-side reads (anon key is ok)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 interface LoginModalProps {
   isOpen: boolean
@@ -16,32 +23,36 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [referralLink, setReferralLink] = useState("")
   const router = useRouter()
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!name.trim() || !whatsapp.trim()) {
       setError("Please fill in all fields")
       return
     }
 
-    // Check if user is registered
-    const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-    const user = registeredUsers.find(
-      (u: any) => u.name.toLowerCase() === name.toLowerCase() && u.whatsapp === whatsapp,
-    )
+    // look up user from supabase
+    const { data: user, error } = await supabase
+      .from("user4")
+      .select("id, username, whatsapp_no, userpage_slug")
+      .eq("username", name.trim())
+      .eq("whatsapp_no", whatsapp.replace(/\D/g, ""))
+      .single()
 
-    if (user) {
-      // Store current user session
-      localStorage.setItem("currentUser", JSON.stringify(user))
-
-      const userReferralLink = `https://bsfitness/${user.name.replace(/\s+/g, "_")}`
-      setReferralLink(userReferralLink)
-      setShowReferralLink(true)
-
-      setTimeout(() => {
-        router.push("/dashboard")
-      }, 2000)
-    } else {
+    if (error || !user) {
       setError("User not found. Please register first or check your credentials.")
+      return
     }
+
+    // store simple session
+    localStorage.setItem("currentUser", JSON.stringify(user))
+
+    const userReferralLink = `https://bsfitness/${user.userpage_slug}`
+    setReferralLink(userReferralLink)
+    setShowReferralLink(true)
+
+    // redirect to dashboard for this user
+    setTimeout(() => {
+      router.push(`/dashboard/${user.userpage_slug}`)
+    }, 2000)
   }
 
   const copyReferralLink = () => {

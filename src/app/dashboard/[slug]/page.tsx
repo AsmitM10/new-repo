@@ -7,6 +7,8 @@ export interface UserData {
   userpage_slug: string
   attendance: string[] | null
   created_at: string
+  registration_date: string
+  last_date: string
 }
 
 export default async function Page({

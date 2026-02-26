@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import AttendanceTracker from "@/components/landing/AttendanceTracker"
 import { createClient } from "@supabase/supabase-js"
+import { Sidebar } from "lucide-react"
 
 /* =========================
    Supabase
@@ -35,6 +36,8 @@ type UserData = {
   userpage_slug: string
   attendance: string[] | null
   created_at: string
+  registration_date: string
+  last_date: string
 }
 
 /* =========================
@@ -47,8 +50,29 @@ export default function MemberDashboard({ data }: { data: UserData }) {
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
+  // referral list pulled from user5 table
+  const [referrals, setReferrals] = useState<string[]>([])
+
   const userName = data.username
-  const referralLink = `https://bsfitness/dashboard/${data.userpage_slug}`
+  // this is the url other people should visit to sign up via your referral
+  const referralLink = `https://new-repo1-chi.vercel.app/${data.userpage_slug}`
+  // your personal dashboard (7‑day session) url
+  const dashboardLink = `https://new-repo1-chi.vercel.app/dashboard/${data.userpage_slug}`
+
+  // query referrals when component mounts
+  useEffect(() => {
+    const loadReferrals = async () => {
+      const { data: row, error } = await supabase
+        .from("user5")
+        .select("referrals")
+        .eq("user_id", data.id)
+        .single()
+      if (!error && row) {
+        setReferrals(row.referrals || [])
+      }
+    }
+    loadReferrals()
+  }, [data.id])
 
   /* =========================
      Attendance Helpers
@@ -114,14 +138,35 @@ export default function MemberDashboard({ data }: { data: UserData }) {
      FAQ
   ========================= */
   const faqs = [
-    {
+   {
       question: "What is the 7-day free online fitness session?",
-      answer: "It’s a guided online fitness program with live workouts.",
+      answer: "Our 7-day free online fitness session is a comprehensive program...",
     },
     {
-      question: "Is the trial really free?",
-      answer: "Yes, no payment is required.",
+      question: "How do I register for the free 7-day program?",
+      answer: "Registration is simple! Just fill out the join form...",
     },
+    {
+      question: "Do I need to pay anything to join the 7-day trial?",
+      answer: "No, the 7-day trial is completely free!",
+    },
+    {
+      question: "Can I join from anywhere in the world?",
+      answer: "Yes! Our online sessions are accessible from anywhere with internet.",
+    },
+    {
+      question: "What kind of workouts are included in the 7-day session?",
+      answer: "The program includes strength training, cardio, yoga, flexibility...",
+    },
+    {
+      question: "Do I need to install any app?",
+      answer: "No, you can join directly from the website via your dashboard.",
+    },
+    {
+      question: "Can I share the session link with my friends or family?",
+      answer: "Yes! Use the referral system in your dashboard.",
+    },
+    
   ]
 
   /* =========================
@@ -140,22 +185,30 @@ export default function MemberDashboard({ data }: { data: UserData }) {
 
         <nav className="mt-6 px-4 space-y-2">
           <Button
-            variant="ghost"
-            className="w-full justify-start"
+            variant={activeSection === "home" ? "default" : "ghost"}
+            className={`w-full justify-start ${activeSection === "home" ? "bg-teal-600 hover:bg-teal-700 text-white" : "text-gray-600"}`}
             onClick={() => setActiveSection("home")}
           >
             <Home className="w-4 h-4 mr-3" /> Home
           </Button>
           <Button
-            variant="ghost"
-            className="w-full justify-start"
+            variant={activeSection === "referrals" ? "default" : "ghost"}
+            className={`w-full justify-start ${activeSection === "referrals" ? "bg-teal-600 hover:bg-teal-700 text-white" : "text-gray-600"}`}
+            onClick={() => setActiveSection("referrals")}
+          >
+            <Users className="w-4 h-4 mr-3" /> Referrals
+          </Button>
+          <Button
+            variant={activeSection === "faqs" ? "default" : "ghost"}
+            className={`w-full justify-start ${activeSection === "faqs" ? "bg-teal-600 hover:bg-teal-700 text-white" : "text-gray-600"}`}
             onClick={() => setActiveSection("faqs")}
           >
             <HelpCircle className="w-4 h-4 mr-3" /> FAQs
           </Button>
+        
           <Button
             variant="ghost"
-            className="w-full justify-start"
+            className="w-full justify-start text-gray-600 hover:bg-red-100 hover:text-red-700"
             onClick={() => setShowLogoutModal(true)}
           >
             <LogOut className="w-4 h-4 mr-3" /> Logout
@@ -218,12 +271,99 @@ export default function MemberDashboard({ data }: { data: UserData }) {
 
             {activeTab === "attendance" && (
               <Card className="p-8 shadow-lg">
-                <AttendanceTracker attendance={data.attendance || []} />
+                <AttendanceTracker 
+                  attendance={data.attendance || []} 
+                  created_at={data.created_at}
+                  userpage_slug={data.userpage_slug}
+                  registration_date={data.registration_date}
+                  last_date={data.last_date}
+                />
               </Card>
             )}
           </>
         )}
+        {activeSection === "referrals" && (
+          <div className="max-w-3xl">
+            <Card className="bg-white shadow-lg rounded-xl overflow-hidden mb-6">
+              <CardHeader className="bg-gradient-to-r bg-white text-black">
+                <CardTitle className="text-2xl font-bold">Share and Invite</CardTitle>
+                <p className="text-gray-700 mt-2">Invite friends and grow your network</p>
+              </CardHeader>
+              
+              <CardContent className="pt-6">
+                <div className="space-y-6">
+                  {/* Referral Link Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Your Referral Link</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 bg-gray-50 border-2 border-gray-200 rounded-lg p-4 font-mono text-sm text-gray-700 break-all">
+                        {referralLink}
+                      </div>
+                      <Button 
+                        onClick={handleCopy}
+                        className="bg-teal-600 hover:bg-teal-700 text-white rounded-lg"
+                      >
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                    {copied && (
+                      <p className="text-green-600 text-sm mt-2">✓ Copied to clipboard!</p>
+                    )}
+                  </div>
 
+                  {/* Share Options */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Share Via</h3>
+                    <div className="flex gap-3">
+                      <Button 
+                        onClick={handleWhatsAppShare}
+                        className="bg-green-600 hover:bg-green-700 text-white flex-1 rounded-lg"
+                      >
+                        WhatsApp
+                      </Button>
+                      <Button 
+                        className="bg-cyan-600 hover:bg-cyan-800 text-white flex-1 rounded-lg"
+                        onClick={() => {
+                          const message = `Join Bright Star Fitness and get FREE 7 Days Sessions!\n${referralLink}`
+                          //window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`, "_blank")
+                          window.open(`https://telegram.org/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`, "_blank")
+                  
+                        }}
+                      >
+                        Telegram
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Referrals List */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Your Referrals</h3>
+                    {referrals.length === 0 ? (
+                      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 text-center">
+                        <p className="text-gray-600 font-medium">No referrals yet</p>
+                        <p className="text-gray-500 text-sm mt-1">Share your link above to start earning referrals!</p>
+                      </div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {referrals.map((slug) => (
+                          <li key={slug} className="flex items-center justify-between p-3 bg-white border rounded">
+                            <span className="break-all">{slug.replace(/_/g, " ")}</span>
+                            <Button
+                              size="sm"
+                              onClick={() => window.open(`/dashboard/${slug}`, "_blank")}
+                            >
+                              View
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
         {activeSection === "faqs" && (
           <div className="space-y-4 max-w-3xl">
             {faqs.map((faq, i) => (
@@ -241,7 +381,9 @@ export default function MemberDashboard({ data }: { data: UserData }) {
               </Card>
             ))}
           </div>
+          
         )}
+        
       </div>
 
       {/* Logout Modal */}

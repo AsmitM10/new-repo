@@ -5,11 +5,18 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function JoinFormSection() {
   const [name, setName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [referrerName, setReferrerName] = useState<string | null>(null);
+  const [referrerSlug, setReferrerSlug] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -21,13 +28,51 @@ export default function JoinFormSection() {
 
   // Extract referral name from URL
   useEffect(() => {
+    let mounted = true;
+
+    const resolveReferrer = async (slug: string) => {
+      // look up user record to get name
+      const { data: user, error } = await supabase
+        .from("user4")
+        .select("username")
+        .eq("userpage_slug", slug)
+        .single();
+      if (!error && user && mounted) {
+        setReferrerName(user.username);
+      } else if (mounted) {
+        // if lookup failed, fallback to converting slug
+        setReferrerName(slug.replace(/_/g, " "));
+      }
+    };
+
     if (typeof window !== "undefined") {
+      // try query parameter first (legacy support)
       const urlParams = new URLSearchParams(window.location.search);
-      const referrer = urlParams.get("ref");
+      let referrer = urlParams.get("ref");
+
+      // if no query param, attempt to read slug from pathname
+      if (!referrer) {
+        const path = window.location.pathname || "";
+        const trimmed = path.replace(/^\//, "");
+        // ignore root, static sections and dashboard path; we expect referral slugs to contain an underscore
+        if (
+          trimmed &&
+          !trimmed.startsWith("dashboard") &&
+          trimmed.includes("_")
+        ) {
+          referrer = trimmed;
+        }
+      }
+
       if (referrer) {
-        setReferrerName(referrer.replace(/_/g, " "));
+        setReferrerSlug(referrer);
+        resolveReferrer(referrer);
       }
     }
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Validate WhatsApp number (Indian format)
@@ -58,38 +103,35 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   setIsSubmitting(true)
 
- try {
-  const res = await fetch("/api/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: name.trim(),
-      whatsapp_no: whatsapp,
+  try {
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: name.trim(),
+        whatsapp_no: whatsapp,
+        // send slug for server to handle linkage
+        referrer_slug: referrerSlug,
+      }),
+    })
 
-      referrer_name: referrerName ?? null,
-    }),
-  })
+    const data = await res.json()
 
-  const data = await res.json()
+    if (!res.ok) {
+      console.error("API ERROR:", data)
+      throw new Error(data.error || "Failed")
+    }
 
-  if (!res.ok) {
-    console.error("API ERROR:", data)
-    throw new Error(data.error || "Failed")
-  }
+    const { slug } = data
 
-  const { slug } = data
+    const telegramBot = "brightstarfitness_bot";
 
-  const telegramBot = "brightstarfitness_bot";
-
-//const telegramLink = `https://t.me/${telegramBot}?text=verify_${slug}`;
-const telegramLink = `https://t.me/${telegramBot}?text=${encodeURIComponent("/verify")}`;
-window.location.href = telegramLink;
-
-
-} catch (err: any) {
-  setMessage(`❌ ${err.message}`)
-}
- finally {
+    //const telegramLink = `https://t.me/${telegramBot}?text=verify_${slug}`;
+    const telegramLink = `https://t.me/${telegramBot}?text=${encodeURIComponent("/verify")}`;
+    window.location.href = telegramLink;
+  } catch (err: any) {
+    setMessage(`❌ ${err.message}`)
+  } finally {
     setIsSubmitting(false)
   }
 }
