@@ -69,6 +69,7 @@ export default function MemberDashboard({ data }: { data: UserData }) {
         .single()
       if (!error && row) {
         setReferrals(row.referrals || [])
+        
       }
     }
     loadReferrals()
