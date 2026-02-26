@@ -11,23 +11,21 @@ export interface UserData {
   last_date: string
 }
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
-  // ✅ unwrap params (THIS WAS THE BUG)
-  const { slug } = await params
+export default async function Page({ params }: { params: { slug: string } }) {
+  // pull slug directly from params (Next.js passes a plain object)
+  const { slug } = params
 
   console.log("PAGE HIT — SLUG:", slug)
 
   const supabase = await createSupabaseServerClient()
   console.log("SUPABASE CLIENT READY")
 
+  // fetch exactly one user row matching the slug
   const { data, error } = await supabase
     .from("user4")
     .select("*")
     .eq("userpage_slug", slug)
+    .single()
 
   console.log("SUPABASE DATA:", data)
   console.log("SUPABASE ERROR:", error)
@@ -40,7 +38,7 @@ export default async function Page({
     )
   }
 
-  if (!data || data.length === 0) {
+  if (!data) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-lg font-semibold">User Not Found</p>
@@ -48,5 +46,5 @@ export default async function Page({
     )
   }
 
-  return <MemberDashboard data={data[0] as UserData} />
+  return <MemberDashboard data={data as UserData} />
 }
