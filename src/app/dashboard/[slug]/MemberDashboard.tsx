@@ -55,9 +55,9 @@ export default function MemberDashboard({ data }: { data: UserData }) {
 
   const userName = data.username
   // this is the url other people should visit to sign up via your referral
-  const referralLink = `https://new-repo1-chi.vercel.app/${data.userpage_slug}`
+  const referralLink = `https://new-repo-alpha-snowy.vercel.app/${data.userpage_slug}`
   // your personal dashboard (7‑day session) url
-  const dashboardLink = `https://new-repo1-chi.vercel.app/dashboard/${data.userpage_slug}`
+  const dashboardLink = `https://new-repo-alpha-snowy.vercel.app/dashboard/${data.userpage_slug}`
 
   // query referrals when component mounts
   useEffect(() => {
