@@ -131,13 +131,13 @@ export const HolidayPreviewModal: React.FC<HolidayPreviewModalProps> = ({
                         <div>
                           <span className="text-gray-600">Current last date</span>
                           <p className="font-semibold text-gray-800">
-                            {new Date(user.last_date).toLocaleDateString('en-GB', { day: 'short', month: 'short', year: '2-digit' })}
+                            {new Date(user.last_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}
                           </p>
                         </div>
                         <div>
                           <span className="text-gray-600">New last date</span>
                           <p className="font-semibold text-green-700">
-                            {new Date(user.new_last_date).toLocaleDateString('en-GB', { day: 'short', month: 'short', year: '2-digit' })}
+                            {new Date(user.new_last_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}
                           </p>
                         </div>
                       </div>
