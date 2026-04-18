@@ -109,7 +109,7 @@ export const HolidayPreviewModal: React.FC<HolidayPreviewModalProps> = ({
                     <div className="text-left flex-1">
                       <p className="font-medium text-gray-800">{user.username}</p>
                       <p className="text-xs text-gray-600">
-                        Registered: {new Date(user.registration_date).toLocaleDateString('en-GB', { day: 'short', month: 'short', year: '2-digit' })}
+                        Registered: {new Date(user.registration_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
